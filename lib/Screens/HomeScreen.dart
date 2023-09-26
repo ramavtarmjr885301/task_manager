@@ -1,7 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:intl/intl.dart';
 import 'package:todo_app/Auth/LoginScreen.dart';
+import 'package:todo_app/Database/Database.dart';
+import 'package:todo_app/Models/Note_Model.dart';
 import 'package:todo_app/Screens/AddTaskScreen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -14,6 +18,22 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+ 
+
+  late Future<List<Note>> _noteList;
+  final DateFormat _dateFormatter = DateFormat("MMM dd, yyy");
+  DatabaseHelper _databaseHelper = DatabaseHelper.instance;
+   @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _updateNoteList();
+  }
+
+  _updateNoteList() {
+    _noteList = DatabaseHelper.instance.getNoteList();
+  }
+
   //Sign Out Function
 // _signOut()async{
 //   await FirebaseAuth.instance.signOut();
@@ -23,21 +43,52 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     // ignore: no_leading_underscores_for_local_identifiers
-    Widget _buildNotes(int index) {
+    Widget _buildNotes(Note note) {
       return Padding(
-        padding:  EdgeInsets.symmetric(horizontal: 25.0),
+        padding: const EdgeInsets.symmetric(horizontal: 25.0),
         child: Column(
           children: <Widget>[
             ListTile(
-              title: const Text("Note Title"),
-              subtitle: Text("Aug 40, 5050 - High"),
+              title: Text(
+                note.title!,
+                style: TextStyle(
+                    fontSize: 18.0,
+                    color: Colors.white,
+                    decoration: note.status == 0
+                        ? TextDecoration.none
+                        : TextDecoration.lineThrough),
+              ),
+              subtitle: Text(
+                '${_dateFormatter.format(note.date!)} - ${note.priority}',
+                style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.white,
+                    decoration: note.status == 0
+                        ? TextDecoration.none
+                        : TextDecoration.lineThrough),
+              ),
               trailing: Checkbox(
                 onChanged: (value) {
-                  print(value);
+                  note.status = value! ? 1 : 0;
+                  DatabaseHelper.instance.updateNote(note);
+                  _updateNoteList();
+                  Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const HomeScreen(),
+                      ));
                 },
                 activeColor: Theme.of(context).primaryColor,
-                value: true,
+                value: note.status == 1 ? true : false,
               ),
+              onTap: () => Navigator.push(
+                  context,
+                  CupertinoPageRoute(
+                      builder: (context) =>  AddTaskScreen(
+
+                          updateNoteList:_updateNoteList(),
+                          note: note,
+                          ))),
             ),
             const Divider(
               color: Colors.deepPurple,
@@ -52,22 +103,27 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
         backgroundColor: const Color(0xFFd4f1f9),
         appBar: AppBar(
-          title: const Text("Todo App"),
+          title: const Text("Task Manager"),
           backgroundColor: Colors.amber,
           centerTitle: true,
           elevation: 5,
-          iconTheme:const  IconThemeData(color: Colors.black),
+          iconTheme: const IconThemeData(color: Colors.black),
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) =>const AddTaskScreen(),));
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>  AddTaskScreen(
+                    updateNoteList: _updateNoteList,
+                  ),
+                ));
           },
-          // ignore: prefer_const_constructors
-          child:  Center(
-              child: const Icon(
+          // ignore: prefer_const_constructors, sort_child_properties_last
+          child: Center(
+              child:  const Icon(
             Icons.add,
             color: Colors.purple,
-            
             size: 30,
           )),
           backgroundColor: Colors.amber,
@@ -117,36 +173,52 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-        body: ListView.builder(
-          itemCount: 10,
-          itemBuilder: (BuildContext context, index) {
-            if (index == 0) {
-              return Padding(
-                padding: EdgeInsets.symmetric(horizontal: 40.0, vertical: 20.0),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        "My Notes",
-                        style: TextStyle(
-                            color: Colors.deepPurple,
-                            fontSize: 40.0,
-                            fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(
-                        height: 10,
-                      ),
-                      Text(
-                        "0 Of 10",
-                        style: TextStyle(
-                            color: Colors.deepPurple,
-                            fontSize: 40.0,
-                            fontWeight: FontWeight.bold),
-                      ),
-                    ]),
+        body: FutureBuilder(
+          future: _noteList,
+          builder: (context, AsyncSnapshot snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(
+                child: CircularProgressIndicator(),
               );
             }
-            return _buildNotes(index);
+            final int completeNoteCount = snapshot.data!
+                .where((Note note) => note.status == 1)
+                .toList()
+                .length;
+
+            return ListView.builder(
+              itemCount: int.parse(snapshot.data!.length.toString()) + 1,
+              itemBuilder: (BuildContext context, index) {
+                if (index == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 40.0, vertical: 20.0),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          const Text(
+                            "My Tasks",
+                            style: TextStyle(
+                                color: Colors.deepPurple,
+                                fontSize: 40.0,
+                                fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(
+                            height: 10,
+                          ),
+                          Text(
+                            '$completeNoteCount of ${snapshot.data!.length}',
+                            style: const TextStyle(
+                                color: Colors.deepPurple,
+                                fontSize: 40.0,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ]),
+                  );
+                }
+                return _buildNotes(snapshot.data![index - 1]);
+              },
+            );
           },
         ));
   }

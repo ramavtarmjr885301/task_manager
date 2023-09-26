@@ -1,25 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:todo_app/Database/Database.dart';
+import 'package:todo_app/Models/Note_Model.dart';
+import 'package:todo_app/Screens/HomeScreen.dart';
 
 class AddTaskScreen extends StatefulWidget {
-  const AddTaskScreen({super.key});
+  final Note? note;
+  final Function? updateNoteList;
+  const AddTaskScreen({super.key, this.note, this.updateNoteList});
 
   @override
   State<AddTaskScreen> createState() => _AddTaskScreenState();
 }
 
 class _AddTaskScreenState extends State<AddTaskScreen> {
+ 
+  
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _dateController = TextEditingController();
   final DateFormat _dateFormatter = DateFormat("MMM dd,  yyyy");
   final List<String> _priorities = ['Low', 'Medium', 'High'];
-  // String _title='';
+  String _title = '';
   String _priority = 'Low';
-  String btnText = "Add Note";
-  String titleText = "Add Note";
+  String btnText = "Add Task";
+  String titleText = "Add Task";
   DateTime _date = DateTime.now();
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    if(widget.note !=null){
+      _title=widget.note!.title!;
+      _date=widget.note!.date!;
+      _priority=widget.note!.priority!;
+      setState(() {
+        btnText='Update Task';
+        titleText='Update Task';
+      });
+    }
+    else{
+      setState(() {
+        btnText='Add Task';
+        titleText='Add Task';
+      });
+    }
+    _dateController.text=_dateFormatter.format(_date);
+  }
+   @override
+  void dispose() {
+    // TODO: implement dispose
+    _dateController.dispose();
+    super.dispose();
+  }
+  
+  
   _handleDatePicker() async {
     final DateTime? date = await showDatePicker(
         context: context,
@@ -34,19 +70,48 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     }
   }
 
+  _submmit() {
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+      print('$_title, $_date, $_priority');
+      Note note = Note(title: _title, date: _date, priority: _priority);
+      if (widget.note == null) {
+        note.status = 0;
+        DatabaseHelper.instance.insertNote(note);
+        Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const HomeScreen(),
+            ));
+      } else {
+        note.id = widget.note!.id;
+        note.status = widget.note!.status;
+        DatabaseHelper.instance.updateNote(note);
+        Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>  const HomeScreen(),
+            ));
+      }
+      widget.updateNoteList!();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 43, 216, 207),
+      backgroundColor: const Color.fromARGB(255, 43, 216, 207),
       body: GestureDetector(
-        onTap: () {},
+        onTap: () => FocusScope.of(context).unfocus(),
         child: SingleChildScrollView(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 80),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                const SizedBox(height: 50,),
+                const SizedBox(
+                  height: 50,
+                ),
                 InkWell(
                   onTap: () {
                     Navigator.pop(context);
@@ -65,9 +130,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                 const SizedBox(
                   height: 20,
                 ),
-                const Text(
-                  "Add Note",
-                  style: TextStyle(
+                Text(
+                  titleText,
+                  style: const TextStyle(
                       color: Colors.deepPurple,
                       fontSize: 40.0,
                       fontWeight: FontWeight.bold),
@@ -83,12 +148,20 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 20),
                           child: TextFormField(
                             // maxLines:2 ,
-                            validator: (value) {
-                              if(value!.isEmpty){
-                                return "Please enter the title";
-                              }
-                              return null;
-                            },
+                            // validator: (input) {
+                            //   if(input!.isEmpty){
+                            //     return "Please enter the title";
+                            //   }
+                            //   return null;
+                            // },
+
+                            validator: (input) => input!.trim().isEmpty
+                                ? 'Please enter the task title'
+                                : null,
+                            // onSaved: (input)=>_title=input!,
+                            // initialValue: _title,
+                            onSaved: (input) => _title = input!,
+                            initialValue: _title,
                             style: const TextStyle(
                               fontSize: 18.0,
                             ),
@@ -104,7 +177,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                           child: TextFormField(
                             // ignore: body_might_complete_normally_nullable
                             validator: (value) {
-                              if(value!.isEmpty){
+                              if (value!.isEmpty) {
                                 return "Please select the date";
                               }
                             },
@@ -124,7 +197,10 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 20),
                           child: DropdownButtonFormField(
-                            
+                            isDense: true,
+                            icon: const Icon(Icons.arrow_drop_down_circle),
+                            iconSize: 22.0,
+                            iconEnabledColor: Theme.of(context).primaryColor,
                             items: _priorities.map((String priority) {
                               return DropdownMenuItem(
                                   value: priority,
@@ -139,35 +215,35 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                                 labelStyle: const TextStyle(fontSize: 18.0),
                                 border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(10.0))),
+                            validator: (input) => _priority == null
+                                ? 'Please select a priority level'
+                                : null,
                             onChanged: (value) {
                               _priority = value.toString();
                             },
                             value: _priority,
                           ),
                         ),
-                         SizedBox(
-                        height: 60,
-                        width: MediaQuery.of(context).size.width,
-                       
-                        child: Center(
-                          child: ElevatedButton(
-                            
-                              style: ElevatedButton.styleFrom(
-                                
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10)
-                                ),
+                        SizedBox(
+                          height: 60,
+                          width: MediaQuery.of(context).size.width,
+                          child: Center(
+                            child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(10)),
 
-                                  // ignore: dead_code
-                                  backgroundColor: Colors.amber),
-                              onPressed: _addNoteBtn,
-                              child: Center(
-                                  child: Text(btnText,
-                                      style: GoogleFonts.poppins(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w700)))),
+                                    // ignore: dead_code
+                                    backgroundColor: Colors.amber),
+                                onPressed: _submmit,
+                                child: Center(
+                                    child: Text(btnText,
+                                        style: GoogleFonts.poppins(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w700)))),
+                          ),
                         ),
-                      ),
                       ],
                     ))
               ],
@@ -176,11 +252,5 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
         ),
       ),
     );
-  }
-
-  void _addNoteBtn() {
-    if(_formKey.currentState!.validate()){
-
-    }
   }
 }
