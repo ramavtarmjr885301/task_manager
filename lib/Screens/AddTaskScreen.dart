@@ -1,3 +1,4 @@
+// ignore: file_names
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -29,7 +30,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   DateTime _date = DateTime.now();
   @override
   void initState() {
-    // TODO: implement initState
+    // todo: implement initState
     super.initState();
     if(widget.note !=null){
       _title=widget.note!.title!;
@@ -50,7 +51,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   }
    @override
   void dispose() {
-    // TODO: implement dispose
+    // todo: implement dispose
     _dateController.dispose();
     super.dispose();
   }
@@ -69,10 +70,16 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       _dateController.text = _dateFormatter.format(date);
     }
   }
+  _delete(){
+    DatabaseHelper.instance.deleteNote(widget.note!.id!);
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen(),));
+    widget.updateNoteList?.call();
+  }
 
   _submmit() {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
+      // ignore: avoid_print
       print('$_title, $_date, $_priority');
       Note note = Note(title: _title, date: _date, priority: _priority);
       if (widget.note == null) {
@@ -93,9 +100,10 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
               builder: (context) =>  const HomeScreen(),
             ));
       }
-      widget.updateNoteList!();
+      widget.updateNoteList?.call();
     }
   }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -215,6 +223,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                                 labelStyle: const TextStyle(fontSize: 18.0),
                                 border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(10.0))),
+                            // ignore: unnecessary_null_comparison
                             validator: (input) => _priority == null
                                 ? 'Please select a priority level'
                                 : null,
@@ -244,6 +253,28 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                                             fontWeight: FontWeight.w700)))),
                           ),
                         ),
+                        widget.note!=null?Container(
+                          margin: const EdgeInsets.symmetric(vertical: 20),
+                          
+                          height: 60,
+                          width: MediaQuery.of(context).size.width,
+                          child: Center(
+                            child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(10)),
+
+                                    // ignore: dead_code
+                                    backgroundColor: Colors.amber),
+                                onPressed: _delete,
+                                child: Center(
+                                    child: Text("Delete Task",
+                                        style: GoogleFonts.poppins(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w700)))),
+                          ),
+                        ):const SizedBox.shrink()
                       ],
                     ))
               ],

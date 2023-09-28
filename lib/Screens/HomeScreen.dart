@@ -1,3 +1,4 @@
+// ignore: file_names
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -22,10 +23,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   late Future<List<Note>> _noteList;
   final DateFormat _dateFormatter = DateFormat("MMM dd, yyy");
-  DatabaseHelper _databaseHelper = DatabaseHelper.instance;
+  // ignore: unused_field
+  // DatabaseHelper _databaseHelper = DatabaseHelper.instance;
    @override
   void initState() {
-    // TODO: implement initState
+    // todo: implement initState
     super.initState();
     _updateNoteList();
   }
@@ -47,11 +49,12 @@ class _HomeScreenState extends State<HomeScreen> {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 25.0),
         child: Column(
-          children: <Widget>[
+          children: [
             ListTile(
               title: Text(
                 note.title!,
                 style: TextStyle(
+                  decorationColor: Colors.black,
                     fontSize: 18.0,
                     color: Colors.white,
                     decoration: note.status == 0
@@ -63,9 +66,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(
                     fontSize: 15,
                     color: Colors.white,
+                    decorationColor: Colors.black,
                     decoration: note.status == 0
                         ? TextDecoration.none
-                        : TextDecoration.lineThrough),
+                        : TextDecoration.lineThrough,),
               ),
               trailing: Checkbox(
                 onChanged: (value) {
@@ -101,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return Scaffold(
-        backgroundColor: const Color(0xFFd4f1f9),
+        backgroundColor: Colors.blueAccent,
         appBar: AppBar(
           title: const Text("Task Manager"),
           backgroundColor: Colors.amber,
@@ -181,7 +185,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: CircularProgressIndicator(),
               );
             }
-            final int completeNoteCount = snapshot.data!
+            final int completedNoteCount = snapshot.data!
                 .where((Note note) => note.status == 1)
                 .toList()
                 .length;
@@ -195,11 +199,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         horizontal: 40.0, vertical: 20.0),
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
+                        children: [
                           const Text(
                             "My Tasks",
                             style: TextStyle(
-                                color: Colors.deepPurple,
+                                color: Colors.white,
                                 fontSize: 40.0,
                                 fontWeight: FontWeight.bold),
                           ),
@@ -207,9 +211,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             height: 10,
                           ),
                           Text(
-                            '$completeNoteCount of ${snapshot.data!.length}',
+                            '$completedNoteCount of ${snapshot.data.length}',
                             style: const TextStyle(
-                                color: Colors.deepPurple,
+                                color: Colors.white,
                                 fontSize: 40.0,
                                 fontWeight: FontWeight.bold),
                           ),
